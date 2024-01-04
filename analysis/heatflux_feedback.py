@@ -204,7 +204,7 @@ annual_lambda_o_2022 = annual_heatflux_feedback.sel(time=slice('1982-01-01','202
 trend_lambda_a = np.apply_along_axis(Theilsen_test,0,annual_lambda_a_2022.data[:41,:,:])
 trend_lambda_o = np.apply_along_axis(Theilsen_test,0,annual_lambda_o_2022.data[:41,:,:])
 
-trend_heatflux_feedback = xr.Dataset(
+trend_heatflux_feedback_2022 = xr.Dataset(
     data_vars = dict(
         lambda_a = (['types','lat','lon'],trend_lambda_a),
         lambda_o = (['types','lat','lon'],trend_lambda_o)
