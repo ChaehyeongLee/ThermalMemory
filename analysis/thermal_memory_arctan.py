@@ -1,3 +1,7 @@
+'''
+This library was written to calculate surface theraml memory from sea surface temperature anmoalies 
+by using the arctangent regressvie with autocorrelation cofficient.
+'''
 import numpy as np
 from scipy.optimize import curve_fit
 import xarray as xr
