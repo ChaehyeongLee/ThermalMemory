@@ -1,9 +1,12 @@
+'''
+Jan. 10th, 2023 Chaehyeong Lee
+
+This library was written to calculate surface theraml memory from sea surface temperature anmoalies by using Autoregressive-1 model.
+It also includes functions for quantitatively deriving changes in time-series data using the Mann-Kendall trend test and the Theil-sen trend test.
+'''
 import numpy as np
 import pymannkendall as mk
 from numba import jit
-'''
-Jan. 10th, 2023 Chaehyeong Lee
-'''
 
 '''
 Input   detrend_ssta: one dimensional detrended SST anomalies
