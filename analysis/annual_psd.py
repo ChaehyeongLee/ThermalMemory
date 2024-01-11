@@ -1,5 +1,7 @@
 '''
 Jun. 8th, 2023 Chaehyoeng Lee.
+
+This code was written to quantitatively calculate the annual variation in the power spectral density of daily mean sea surface temperature.
 ''' 
 
 import xarray as xr
