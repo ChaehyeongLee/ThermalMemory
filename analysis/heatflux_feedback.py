@@ -1,3 +1,8 @@
+'''
+This code was written to calculate the two negative feedback rates (lambda_a and lambda_o).
+It derives the average negative feedback rate and its changing trend from sea surface temperature, 10 meter wind speed, and 2 meter atmospheric temperature.
+'''
+
 import xarray as xr
 import numpy as np
 from scipy import stats
