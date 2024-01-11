@@ -1,3 +1,10 @@
+'''
+This code was written to calculate the number of ocean heatwave days and trends over the analysis period from daily SST.
+
+marineheatwave.py (Oliver, et al. (2016)) was used to calculate the duration of the marine heatwave, and pymannkendall.py (Haussain et al., (2019)) (Mann-Kendall trend test) 
+and Theil-Sen trend test were used to quantitatively determine the trend of change.
+'''
+
 from scipy import stats
 import marineHeatWaves as mhw
 import xarray as xr
@@ -17,7 +24,7 @@ t_vector = np.arange(t_initial_vector,t_final_veoctor+1)
 sst_global = xr.open_dataset(dir_OISST+'1982-2022-1degree_SST.nc').sel(time=slice('1982-01-01','2021-12-31'))
 
 #
-# Mann-Kendall Trend test (modifie from Hussain et al.,(2019))
+# Mann-Kendall Trend test (modified from Hussain et al.,(2019))
 #
 def trend_test(x):
     if np.isnan(np.sum(x)): trend, slope = np.nan, np.nan
