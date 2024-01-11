@@ -1,6 +1,5 @@
 '''
 This code was written to calculate the number of ocean heatwave days and trends over the analysis period from daily SST.
-
 marineheatwave.py (Oliver, et al. (2016)) was used to calculate the duration of the marine heatwave, and pymannkendall.py (Haussain et al., (2019)) (Mann-Kendall trend test) 
 and Theil-Sen trend test were used to quantitatively determine the trend of change.
 '''
