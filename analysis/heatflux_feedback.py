@@ -1,6 +1,7 @@
 '''
 This code was written to calculate the two negative feedback rates (lambda_a and lambda_o).
 It derives the average negative feedback rate and its changing trend from sea surface temperature, 10 meter wind speed, and 2 meter atmospheric temperature.
+The bulk formulae used to calculate the latent and sensible heat fluxes are described in Large & Yeager, 2004.
 '''
 
 import xarray as xr
