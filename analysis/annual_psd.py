@@ -26,7 +26,7 @@ def calc_ps(x):
     npositive = nt//2
     pslice = slice(1, npositive) # take only the positive frequencies (w/o '0')
     fft_result = np.fft.fft(x)[pslice] # Compute the power spectrum
-    ps = np.abs(fft_result) ** 2
+    ps = np.abs(fft_result) ** 2 /nt
     return ps
 
 def calc_freq(x,dt=1):
