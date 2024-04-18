@@ -26,7 +26,7 @@ def calc_ps(x):
     npositive = nt//2
     pslice = slice(1, npositive) # take only the positive frequencies (w/o '0')
     fft_result = np.fft.fft(x)[pslice] # Compute the power spectrum
-    ps = np.abs(fft_result) ** 2 /nt
+    ps = np.abs(fft_result) ** 2
     ps *= 2         # Double to account for the energy in the negative frequencies
     ps /= nt**2     # Normalizeation for Power Spectrum
     return ps
