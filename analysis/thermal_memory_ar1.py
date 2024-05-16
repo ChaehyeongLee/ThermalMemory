@@ -15,33 +15,26 @@ Input   Sea surface temperature time series data (not less than 1 dimension)
 '''
 @jit(nopython=True)
 def memory_timescale(da,vars, option='annual'):
-    da = da[vars]
-    tau_func = lambda x: -1/np.log(np.corrcoef(x[:-1],x[1:])[0,1])
-
-    if option=='annual': 
-        annual_da = da.groupby('time.year')
-        tau = annual_da.apply(
-            lambda y: xr.apply_ufunc(
-                lambda z: np.apply_along_axis(tau_func, 0, z),
-                y,
-                dask='parallelized',
-                input_core_dims=[['time']], 
-                output_core_dims=[[]],  
-                output_dtypes=[float],
-                vectorize=True
-            )
-        )
-    else: 
-        tau = xr.apply_ufunc(
-            lambda y: np.apply_along_axis(tau_func,0,y),
-            da,
-            dask='parallelized',
-            input_core_dims=[['time']],
-            output_core_dims=[[]],
-            output_dtypes=[float],
-            vectorize=True
-        )
     
+    def tau_func(x):
+        if np.sum(x)==0 or np.isnan(np.sum(x))==1:
+            t = np.nan
+        else:
+            t= -1/np.log(np.corrcoef(x[:-1],x[1:])[0,1])
+        return t
+            
+    da = da[vars]        
+    if option=='annual':
+        da = da.groupby('time.year')
+    tau = xr.apply_ufunc(
+        lambda y: np.apply_along_axis(tau_func, 0, y),
+        da,
+        dask='parallelized',
+        input_core_dims=[['time']], 
+        output_core_dims=[[]],  
+        output_dtypes=[float],
+        vectorize=True
+        )
     return tau
 
 #
