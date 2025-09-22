@@ -2,8 +2,8 @@
 
 This directory contains the Python functions and libraries used for the analysis presented in the Nature Climate Change paper:
 
-**"Declining upper-ocean thermal memory over the 21st century"**  
-https://www.nature.com/articles/s41558-025-02245-w
+**"Observed multi-decadal increase in the surface ocean’s thermal inertia"**  
+[https://www.nature.com/articles/s41558-025-02245-w](https://doi.org/10.1038/s41558-025-02245-w)
 
 All figures and analysis results in the study, except for Mixed Layer Depth data, were created using the functions in this directory. The mixed layer depth data is from [Sallée et al. (2021)](https://doi.org/10.1038/s41586-021-03303-x).
 
@@ -14,7 +14,7 @@ The analysis functions implement various methods to calculate ocean thermal memo
 ## Files and Functions
 
 ### 1. `thermal_memory_ar1.py`
-**Purpose**: Calculate surface thermal memory using Autoregressive-1 (AR1) model
+**Purpose**: Calculate surface thermal memory using Autoregressive-1 (AR1) like model (it selects lag-10 autocorrelation coefficient to fit to exponential function)
 
 **Key Functions**:
 - `memory_timescale(da, vars, option='annual')`: Calculates thermal memory timescale from SST anomalies using autocorrelation
@@ -103,5 +103,4 @@ Key physical constants used throughout the analysis:
 - **Statistical Methods**: Hussain, M. M. et al. (2019) for Mann-Kendall implementation
 
 ## Citation
-
-If you use these functions, please cite the original Nature Climate Change paper and acknowledge the data sources as specified in the paper.
+[https://www.nature.com/articles/s41558-025-02245-w](https://doi.org/10.1038/s41558-025-02245-w)
