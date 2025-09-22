@@ -47,13 +47,34 @@ L_w = 2.5*1e6
 C_d = (2.7/wind10_xr['wind10'] + 0.142 + wind10_xr['wind10']/13.09)*1e-3 
 C_e = 34.6*np.sqrt(C_d)*1e-3 
 
-def stability(t2m,sst):
-    gamma = -0.98*1e-3 # dry adiabatic rapse rate
-    func = lambda x, y: x+gamma*(-2)-y
+def stability(t2m, sst):
+    """
+    Calculate atmospheric stability parameter.
+    
+    Args:
+        t2m: 2-meter air temperature [K]
+        sst: sea surface temperature [K]
+    
+    Returns:
+        zeta: stability parameter (positive = stable, negative = unstable)
+    """
+    gamma = -0.98*1e-3 # dry adiabatic lapse rate [K/m]
+    func = lambda x, y: x+gamma*(-2)-y  # stability at 2m height
     return xr.apply_ufunc(func, t2m, sst)
 zeta = stability(t2m_xr['t2m'],sst_xr['analysed_sst'])
 
 def vfunc_Ch(C_d, zeta):
+    """
+    Calculate heat transfer coefficient based on atmospheric stability.
+    
+    Args:
+        C_d: drag coefficient
+        zeta: stability parameter
+    
+    Returns:
+        C_h: heat transfer coefficient for sensible heat
+    """
+    # Different coefficients for stable (zeta>0) vs unstable (zeta<0) conditions
     func = lambda x, y: xr.where(y>0, 18*np.sqrt(x)*1e-3, 32.7*np.sqrt(x)*1e-3)
     return xr.apply_ufunc(func, C_d, zeta)
 C_h = vfunc_Ch(C_d, zeta) # transfer coefficient for sensible heat
@@ -66,16 +87,38 @@ Negative feedback rate back toward atm(lambda_a) [Wm-2K-1]
 '''
 lambda_lw = 4*sigma*t2m_xr['t2m']**3
 
-def calc_sh(C_h,wind10):
-    func = lambda x, y: rho_a*c_ap*x*y
+def calc_sh(C_h, wind10):
+    """
+    Calculate sensible heat flux feedback coefficient.
+    
+    Args:
+        C_h: heat transfer coefficient
+        wind10: 10-meter wind speed [m/s]
+    
+    Returns:
+        lambda_sh: sensible heat feedback [W m⁻²K⁻¹]
+    """
+    func = lambda x, y: rho_a*c_ap*x*y  # bulk formula for sensible heat
     return xr.apply_ufunc(func, C_h, wind10)
 lambda_sh = calc_sh(C_h,wind10_xr['wind10'])
     
-def calc_lh(C_e,wind10,t2m):
-    q1 = 0.98*640380 # [kgm-3]
-    q2 = -5107.4     # [K]
+def calc_lh(C_e, wind10, t2m):
+    """
+    Calculate latent heat flux feedback coefficient.
+    
+    Args:
+        C_e: evaporation transfer coefficient
+        wind10: 10-meter wind speed [m/s]
+        t2m: 2-meter air temperature [K]
+    
+    Returns:
+        lambda_lh: latent heat feedback [W m⁻²K⁻¹]
+    """
+    q1 = 0.98*640380 # saturated specific humidity coefficient [kg m⁻³]
+    q2 = -5107.4     # Clausius-Clapeyron coefficient [K]
+    # Bulk formula with temperature-dependent saturation vapor pressure
     func = lambda x, y, z: -L_w*x*y*(q1*q2/z**2)*np.exp(q2/z)
-    return xr.apply_ufunc(func,C_e,wind10,t2m)
+    return xr.apply_ufunc(func, C_e, wind10, t2m)
 lambda_lh = calc_lh(C_e,wind10_xr['wind10'],t2m_xr['t2m'])
 
 heatflux_feedback = lambda_lw.to_dataset(name = 'lambda_lw')
@@ -145,9 +188,20 @@ Trend of the heatflux feedback rate [Wm-2K-1 year-1]
 x = np.arange(1982,2022)
 
 def trend_test(x):
-    if np.isnan(np.sum(x)): trend, slope = np.nan, np.nan
+    """
+    Perform Mann-Kendall trend test for statistical significance.
+    
+    Args:
+        x: time series data
+    
+    Returns:
+        trend: 1 (increasing), -1 (decreasing), 0 (no trend)
+    """
+    if np.isnan(np.sum(x)): 
+        trend, slope = np.nan, np.nan
     else:
-        mk_x = mk.original_test(x,alpha=0.05)
+        mk_x = mk.original_test(x, alpha=0.05)
+        # Convert trend string to numeric code
         if mk_x.trend == 'increasing': trend = 1
         elif mk_x.trend == 'decreasing': trend = -1
         else: trend = 0
@@ -155,10 +209,21 @@ def trend_test(x):
     return trend#, slope
 
 def Theilsen_test(y):
+    """
+    Perform Theil-Sen slope estimation with Mann-Kendall significance test.
+    
+    Args:
+        y: time series data
+    
+    Returns:
+        signif: trend significance from Mann-Kendall test
+        slope: Theil-Sen slope estimate
+    """
     if np.sum(~np.isnan(y))!=len(y):
         signif, slope = np.nan, np.nan
     else:
-        slope, y0, beta_lr, beta_up = stats.mstats.theilslopes(y,x, alpha=1-0.05)
+        # Theil-Sen robust slope estimation
+        slope, y0, beta_lr, beta_up = stats.mstats.theilslopes(y, x, alpha=1-0.05)
         signif = trend_test(y)
 
     return signif, slope

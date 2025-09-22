@@ -14,46 +14,84 @@ dir_data = header+'persistence/data_availability/'
 sst_ncei = xr.open_dataset(dir_data+'1982-2022_analysed_sst.nc')
 
 def ext_ldays(da):
+    """
+    Remove leap days (February 29th) for consistent annual analysis.
+    
+    Args:
+        da: xarray dataset with time dimension
+    
+    Returns:
+        da_noleap: dataset with leap days removed
+    """
     time_index = pd.to_datetime(da['time'].values) 
-    leap_day_mask = (time_index.month == 2) & (time_index.day == 29) # Identify leap days (February 29th)
-    unique_time_index = time_index[~leap_day_mask] # Ensure we only have unique values by excluding leap days
-    non_leap_day_mask = da['time'].isin(unique_time_index) # Use isin to create a mask for the times that are not leap days
-    da_noleap = da.sel(time=non_leap_day_mask) # Finally, select the non-leap days in the Dataset
+    leap_day_mask = (time_index.month == 2) & (time_index.day == 29) # Identify leap days
+    unique_time_index = time_index[~leap_day_mask] # Exclude leap days
+    non_leap_day_mask = da['time'].isin(unique_time_index) # Create mask for non-leap days
+    da_noleap = da.sel(time=non_leap_day_mask) # Select non-leap days only
     return da_noleap
 
 def calc_ps(x):
+    """
+    Calculate power spectral density using FFT.
+    
+    Args:
+        x: input time series
+    
+    Returns:
+        ps: normalized power spectrum (positive frequencies only)
+    """
     nt = len(x)
     npositive = nt//2
-    pslice = slice(1, npositive) # take only the positive frequencies (w/o '0')
-    fft_result = np.fft.fft(x)[pslice] # Compute the power spectrum
-    ps = np.abs(fft_result) ** 2
-    ps *= 2         # Double to account for the energy in the negative frequencies
-    ps /= nt**2     # Normalizeation for Power Spectrum
+    pslice = slice(1, npositive) # take only positive frequencies (excluding DC component)
+    fft_result = np.fft.fft(x)[pslice] # Compute FFT
+    ps = np.abs(fft_result) ** 2  # Power spectrum
+    ps *= 2         # Double to account for energy in negative frequencies
+    ps /= nt**2     # Normalization for proper power spectrum
     return ps
 
-def calc_freq(x,dt=1):
+def calc_freq(x, dt=1):
+    """
+    Calculate frequency array for power spectrum.
+    
+    Args:
+        x: input time series
+        dt: time step (default=1 day)
+    
+    Returns:
+        freq: frequency array (positive frequencies only)
+    """
     nt = len(x)
     npositive = nt//2
-    pslice = slice(1, npositive) # take only the positive frequencies (w/o '0')
-    freq = np.fft.fftfreq(nt,d=1/dt)[pslice]
+    pslice = slice(1, npositive) # take only positive frequencies (excluding DC)
+    freq = np.fft.fftfreq(nt, d=1/dt)[pslice]  # Generate frequency array
     return freq
     
-# Function to apply the power spectrum calculation across the dataset for each year
-def annual_calc_ps(da,var='analysed_ssta'):
-    da = ext_ldays(da[var])
-    # Group the dataset by year and then apply the power spectrum calculation to each group
+def annual_calc_ps(da, var='analysed_ssta'):
+    """
+    Calculate annual power spectral density for each year.
+    
+    Args:
+        da: xarray dataset containing SST anomaly data
+        var: variable name to process (default: 'analysed_ssta')
+    
+    Returns:
+        annual_ps: annual power spectra with frequency coordinates
+    """
+    da = ext_ldays(da[var])  # Remove leap days for consistent 365-day years
+    # Group dataset by year and apply power spectrum calculation
     annual_da = da.groupby('time.year')
     annual_ps = annual_da.apply(
         lambda x: xr.apply_ufunc(
             lambda y: np.apply_along_axis(calc_ps, 0, y),
             x,
             dask='parallelized',
-            input_core_dims=[['time']],  # Specify 'time' as the core dimension
-            output_core_dims=[['frequency']],  # Specify 'frequency' as the core dimension in the output
+            input_core_dims=[['time']],  # Time is the core dimension for input
+            output_core_dims=[['frequency']],  # Frequency is the core dimension for output
             output_dtypes=[float],
             vectorize=True
         )
     )
+    # Add frequency coordinates based on 365-day year
     annual_ps = annual_ps.assign_coords({'frequency':('frequency',calc_freq(da.sel({'lat':0,'lon':0},method='nearest').isel(time=slice(0,365))))})
     return annual_ps
 #

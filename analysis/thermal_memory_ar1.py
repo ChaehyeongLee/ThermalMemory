@@ -14,18 +14,33 @@ Input   Sea surface temperature time series data (not less than 1 dimension)
 
 '''
 @jit(nopython=True)
-def memory_timescale(da,vars, option='annual'):
+def memory_timescale(da, vars, option='annual'):
+    """
+    Calculate thermal memory timescale using AR1 model.
+    
+    Args:
+        da: xarray dataset containing SST data
+        vars: variable name to process
+        option: 'annual' for yearly grouping
+    
+    Returns:
+        tau: thermal memory timescale in days
+    """
     
     def tau_func(x):
+        # Check for valid data
         if np.sum(x)==0 or np.isnan(np.sum(x))==1:
             t = np.nan
         else:
+            # Calculate lag-1 autocorrelation and convert to e-folding timescale
             t= -1/np.log(np.corrcoef(x[:-1],x[1:])[0,1])
         return t
             
     da = da[vars]        
     if option=='annual':
         da = da.groupby('time.year')
+    
+    # Apply timescale calculation across spatial dimensions
     tau = xr.apply_ufunc(
         lambda y: np.apply_along_axis(tau_func, 0, y),
         da,
@@ -42,9 +57,21 @@ def memory_timescale(da,vars, option='annual'):
 # slope follows Theil-Sen method
 #
 def trend_test(x):
-    if np.isnan(np.sum(x)): trend, slope = np.nan, np.nan
+    """
+    Perform Mann-Kendall trend test for statistical significance.
+    
+    Args:
+        x: time series data
+    
+    Returns:
+        trend: 1 (increasing), -1 (decreasing), 0 (no trend)
+        slope: Theil-Sen slope estimate
+    """
+    if np.isnan(np.sum(x)): 
+        trend, slope = np.nan, np.nan
     else:
         mk_x = mk.original_test(x)
+        # Convert trend string to numeric code
         if mk_x.trend == 'increasing': trend = 1
         elif mk_x.trend == 'decreasing': trend = -1
         else: trend = 0
