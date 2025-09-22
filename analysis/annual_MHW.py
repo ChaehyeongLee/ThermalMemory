@@ -26,9 +26,20 @@ sst_global = xr.open_dataset(dir_OISST+'1982-2022-1degree_SST.nc').sel(time=slic
 # Mann-Kendall Trend test (modified from Hussain et al.,(2019))
 #
 def trend_test(x):
-    if np.isnan(np.sum(x)): trend, slope = np.nan, np.nan
+    """
+    Perform Mann-Kendall trend test for statistical significance.
+    
+    Args:
+        x: time series data
+    
+    Returns:
+        trend: 1 (increasing), -1 (decreasing), 0 (no trend)
+    """
+    if np.isnan(np.sum(x)): 
+        trend, slope = np.nan, np.nan
     else:
-        mk_x = mk.original_test(x,alpha=0.05)
+        mk_x = mk.original_test(x, alpha=0.05)
+        # Convert trend string to numeric code
         if mk_x.trend == 'increasing': trend = 1
         elif mk_x.trend == 'decreasing': trend = -1
         else: trend = 0
@@ -42,24 +53,35 @@ def trend_test(x):
 # Theil-Sen trend & marineheatwaves.py(modified from Oliver, et al., (2018); Oliver, et al., (2016))
 #
 def TS_for_MHWduration(sst):
+    """
+    Calculate marine heatwave duration trends using Theil-Sen method.
+    
+    Args:
+        sst: sea surface temperature time series
+    
+    Returns:
+        signif: trend significance from Mann-Kendall test
+        slope: Theil-Sen slope estimate for MHW duration trend
+    """
     
     if np.sum(~np.isnan(sst))!=len(sst):
         signif, slope = np.nan, np.nan
     else:
+        # Detect marine heatwaves using Hobday et al. (2016) definition
         mhws, clim = mhw.detect(t_vector, sst)
-        mhwBlock = mhw.blockAverage(t_vector, mhws)
+        mhwBlock = mhw.blockAverage(t_vector, mhws)  # Annual blocking
 
         center_year = mhwBlock['years_centre']
-        X = center_year-center_year.mean()
+        X = center_year-center_year.mean()  # Centered time variable
 
-        y = mhwBlock['duration']
+        y = mhwBlock['duration']  # Annual mean MHW duration
         valid = ~np.isnan(y) # non-NaN indices
-        #
-        #
+        
         # Perform linear regression over valid indices
-        if np.sum(~np.isnan(y)) == 0: # If at least one non-NaN value
+        if np.sum(~np.isnan(y)) == 0: # If no valid data
             slope, signif = np.nan, np.nan
         else:
+            # Theil-Sen robust slope estimation
             slope, y0, beta_lr, beta_up = stats.mstats.theilslopes(y[valid], X[valid], alpha=1-0.05)
             signif = trend_test(y[valid])
 
@@ -67,17 +89,26 @@ def TS_for_MHWduration(sst):
 
 
 def main(lat_idx):
+    """
+    Process MHW duration trends for a latitude band (parallel processing).
+    
+    Args:
+        lat_idx: latitude band index (0-17 for 10-degree bands)
+    """
     global dir_OISST
     global t_vector, sst_global
 
+    # Process 10-degree latitude band
     sliced_data = sst_global.isel(lat=slice(lat_idx*10,(lat_idx+1)*10))
     sst_np = sliced_data['analysed_sst']
     lat_data = sliced_data['lat']
     lon_data = sliced_data['lon']
 
+    # Apply MHW duration trend analysis across all grid points
     duration_trend = np.zeros([2,sst_np.shape[1],sst_np.shape[2]])
     duration_trend = np.apply_along_axis(TS_for_MHWduration,0,sst_np)
 
+    # Create output dataset
     duration_trend_xr = xr.Dataset(
         data_vars=dict(
             significance = (['lat','lon'],duration_trend[0,:,:]),
@@ -88,7 +119,7 @@ def main(lat_idx):
             lon = lon_data,
             )
         )
-    name_tag_1 = '111111111222222222'
+    name_tag_1 = '111111111222222222'  # File naming tags
     name_tag_a = 'ABCDEFGHIABCDEFGHI'
 
     duration_trend_xr.to_netcdf(dir_OISST+'1982-2021_MHW_duration_MK_trend_test_'+name_tag_1[lat_idx]+name_tag_a[lat_idx]+'.nc')
