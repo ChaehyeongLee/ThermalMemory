@@ -10,3 +10,7 @@ Database directory:
 
 **"Observed multi-decadal increase in the surface ocean’s thermal inertia"**  
 [https://www.nature.com/articles/s41558-025-02245-w](https://doi.org/10.1038/s41558-025-02245-w)
+
+## Please cite this:
+**"Dataset for "Observed multi-decadal increase in the surface ocean's thermal inertia" Nature Climate Change (2025) [Dataset]. In Nature Climate Change (Vol. 15, Issue 3, pp. 308–314). Zenodo"**
+https://doi.org/10.5281/zenodo.16792893 
